@@ -142,7 +142,7 @@ results = {}
 for player in VALID_USERS:
     entries = [r for r in rows if r["user"] == player]
 
-    total = sum(e["score"] for e in entries)
+    total = sum(e.get("score", 0) or 0 for e in entries)
     junk_days = sum(1 for e in entries if e["junk_day"])
     healthy_days = sum(1 for e in entries if e["score"] >= 4)
 
