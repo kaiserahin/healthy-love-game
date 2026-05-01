@@ -6,7 +6,7 @@ import datetime
 # SUPABASE CONNECTION
 # =========================
 SUPABASE_URL = "https://rxcdwvlfxbilkizimmoj.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4Y2R3dmxmeGJpbGtpemltbW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MzI3NjEsImV4cCI6MjA5MzIwODc2MX0.99nYL9M6pTfKd9Z0mZUNldKW0a5EQR2Gji61Z07prik"
+SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -24,25 +24,21 @@ def get_week(date):
 
 def calculate_score(entry):
     score = 0
-    if entry["healthy_meals"]:
+    if entry.get("healthy_meals"):
         score += 2
-    if entry["fruits"]:
+    if entry.get("fruits"):
         score += 1
-    if entry["water"]:
+    if entry.get("water"):
         score += 1
-    if entry["overeat"]:
+    if entry.get("overeat"):
         score -= 1
 
-    score += 0 if entry["junk_day"] else 1
+    score += 0 if entry.get("junk_day") else 1
     return score
 
 def fetch_week_data(week):
-    res = supabase.table("daily_logs").select("*").eq("week", week).execute()
-    return res.data
-
-def fetch_user_week(user, week):
-    res = supabase.table("daily_logs").select("*").eq("week", week).eq("user", user).execute()
-    return res.data
+    response = supabase.table("daily_logs").select("*").eq("week", week).execute()
+    return response.data or []
 
 # =========================
 # LOGIN SYSTEM
@@ -83,7 +79,7 @@ existing = supabase.table("daily_logs") \
     .eq("date", date_str) \
     .execute()
 
-already_logged = len(existing.data) > 0
+already_logged = len(existing.data or []) > 0
 
 if already_logged:
     st.warning("⚠️ You already logged this date!")
@@ -140,11 +136,12 @@ rows = fetch_week_data(week)
 results = {}
 
 for player in VALID_USERS:
-    entries = [r for r in rows if r["user"] == player]
+
+    entries = [r for r in rows if r.get("user") == player]
 
     total = sum((e or {}).get("score", 0) for e in entries)
-    junk_days = sum(1 for e in entries if e["junk_day"])
-    healthy_days = sum(1 for e in entries if e["score"] >= 4)
+    junk_days = sum(1 for e in entries if e.get("junk_day"))
+    healthy_days = sum(1 for e in entries if (e.get("score") or 0) >= 4)
 
     extra_junk = max(0, junk_days - 1)
     junk_penalty = extra_junk * -3
@@ -165,7 +162,7 @@ for player in VALID_USERS:
 # =========================
 # WINNER LOGIC
 # =========================
-if len(rows) > 0:
+if results:
     winner = max(results, key=results.get)
     loser = min(results, key=results.get)
 
